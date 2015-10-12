@@ -1,0 +1,49 @@
+#!/usr/bin/env php
+<?php
+#######################################################
+#  Shopify Theme Update                               #
+#  Uploads new theme changes to shopify.              #
+#  -------------------------------------------------  #
+#                                                     #
+#  Usage:                                             #
+#     $ shopify-theme-update                          #
+#                                                     #
+#  Public Domain Software -- Free to Use as You Like  #
+#######################################################
+function curry($fn) {
+	$args = array_slice(func_get_args(), 1);
+	$new = function() use ($fn, $args) {
+		return call_user_func_array($fn, array_merge($args, func_get_args()));
+	};
+	return $new;
+}
+function get_timestamp_path() {
+	return getcwd().'/.stu-last-update.txt';
+}
+function get_modified() {
+	return `git status -s | grep '^\( M\|\?\?\| A\)' | awk '{ print $2; }'`;
+}
+function get_last_update_timestamp() {
+	return is_readable(get_timestamp_path()) ? intval(file_get_contents(get_timestamp_path())) : 0;
+}
+function has_changed($last_update, $path) {
+	$file_update = filemtime($path);
+	printf("$path [%s > %s ?]\n", date('h:i:s', $file_update), date('h:i:s', $last_update));
+	return $file_update > $last_update;
+}
+function update_timestamp() {
+	file_put_contents(get_timestamp_path(), time());
+}
+function upload($path) {
+	$cmd = "theme upload '$path'";
+	echo "$cmd\n";
+	system($cmd);
+}
+function is_valid_file($path) {
+	return file_exists($path) && strpos(basename($path), '.') !== 0;
+}
+
+
+clearstatcache();
+foreach (array_filter(array_filter(explode("\n", get_modified()), 'is_valid_file'), curry('has_changed', get_last_update_timestamp())) as $path) upload($path);
+update_timestamp();
