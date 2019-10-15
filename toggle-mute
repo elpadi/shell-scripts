@@ -1,0 +1,11 @@
+#!/bin/sh
+
+state=$(amixer get Master | grep -c '\[on\]')
+
+if [[ $state == "0" ]]; then
+	for i in $(amixer | grep Simple | perl -pe "s/.*?'//" | sed "s/'.*//"); do
+		amixer set "$i" unmute
+	done
+else
+	amixer set Master mute
+fi
