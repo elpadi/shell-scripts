@@ -1,0 +1,27 @@
+#!/bin/bash
+
+ENV_SUFFIX="staging"
+
+if [[ "$ENV" == "dev" ]]; then
+    ENV_SUFFIX="dev"
+fi
+
+if [[ "$ENV" == "prod" ]]; then
+    ENV_SUFFIX=""
+fi
+
+if [[ "$COUNTRY" == "" ]]; then
+    COUNTRY="au"
+fi
+
+if [[ "$FOOL_PACKAGE_PATH" == "" ]]; then
+    echo "Missing FOOL_PACKAGE_PATH env var."
+    exit 1
+fi
+
+SERVER_NAME="fool${COUNTRY}${ENV_SUFFIX}"
+
+SITE_URL="${SERVER_NAME}@${SERVER_NAME}.ssh.wpengine.net"
+SITE_REMOTE_DIR="/home/wpe-user/sites/$SERVER_NAME/$FOOL_PACKAGE_PATH"
+
+. "$HOME/Work/elpadi/shell-scripts/site-ssh"

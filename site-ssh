@@ -1,0 +1,89 @@
+#!/bin/bash
+
+# Quickly connect to the server through ssh, or transfer files with scp.
+#
+# USE WITH EXTREME CAUTION
+#
+# Environment variables:
+#
+#   $ENV (default to "staging"): specify the environment to use.
+#   $COUNTRY (default to "au"): two letter code of the country to connect to.
+#
+# Arguments:
+#
+#    None: connect through ssh.
+#    d path [path path ...]: Download the specified paths.
+#    u path [path path ...]: Upload the specified paths.
+#
+# Examples:
+#
+# Connect to staging: ./ssh
+#
+# Connect to production: ENV=prod ./ssh
+#
+# Upload a file: ./ssh u inc/template-functions.php
+#
+# Download a file (will overwrite any unsaved changes): ./ssh d inc/template-functions.php
+
+
+upload_file() {
+	echo "Uploading $1"
+	scp -r "$1" "$SITE_URL:$SITE_REMOTE_DIR/$1"
+}
+
+upload_dir() {
+    dirPathNoSlash=$(echo "$1" | sed 's:/*$::')
+	echo "Uploading dir $1"
+    rsync -acvuzh --delete-after --port=$SSH_PORT "$dirPathNoSlash/" "$SITE_URL:$SITE_REMOTE_DIR/$dirPathNoSlash/"
+}
+
+download() {
+	echo "Downloading $1"
+	scp -r "$SITE_URL:$SITE_REMOTE_DIR/$1" "$1"
+}
+
+if [[ "$SSH_PORT" == "" ]]; then
+    SSH_PORT=22
+fi
+
+if [[ "$SITE_URL" == "" ]]; then
+    echo "Missing SITE_URL env var."
+    exit 1
+fi
+
+if [[ "$SITE_REMOTE_DIR" == "" ]]; then
+    echo "Missing SITE_REMOTE_DIR env var."
+    exit 1
+fi
+
+echo "Using $SITE_URL"
+
+if [[ $# == 0 ]]; then
+	ssh $SITE_URL
+	exit 0
+fi
+
+while [[ $# > 0 ]]; do
+	if [[ -z $ACTION ]]; then
+		if [[ "$1" != "u" ]] && [[ "$1" != "d" ]]; then
+			echo "First param must be 'u' or 'd'"
+			exit 1
+		fi
+		ACTION="$1"
+	else
+		if [[ "$ACTION" == "u" ]]; then
+            if [[ -d "$1" ]]; then
+                upload_dir "$1"
+            elif [[ -f "$1" ]]; then
+                upload_file "$1"
+            else
+                echo "Could not read the given file path."
+                exit 1
+            fi
+        fi
+		if [[ "$ACTION" == "d" ]]; then download "$1"; fi
+	fi
+	shift
+done
+
+exit 0
