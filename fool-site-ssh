@@ -1,6 +1,49 @@
 #!/bin/bash
 
-ENV_SUFFIX="staging"
+ENV_SUFFIX="unspecified"
+
+if [[ "$FOOL_PACKAGE_PATH" == "" ]]; then
+    echo "Missing FOOL_PACKAGE_PATH env var."
+    exit 1
+fi
+
+if [[ "$COUNTRY" == "" ]]; then
+    echo "Missing COUNTRY env var."
+    exit 1
+fi
+
+if [[ "$FOOL_PACKAGE_PATH" == "" ]]; then
+    echo "Missing FOOL_PACKAGE_PATH env var."
+    exit 1
+fi
+
+if [[ "$ENV" == "local" ]]; then
+    BASE_PATH="$HOME/Work/fool/Fool-${COUNTRY^^}/public/$FOOL_PACKAGE_PATH"
+    while [[ $# > 0 ]]; do
+        if [[ -z $ACTION ]]; then
+            if [[ "$1" != "u" ]] && [[ "$1" != "d" ]]; then
+                echo "First param must be 'u' or 'd'"
+                exit 1
+            fi
+            ACTION="$1"
+        else
+            if [[ "$ACTION" == "u" ]]; then
+                rm -rf "$BASE_PATH/$1"
+                cp -vr "$1" "$BASE_PATH/$1"
+            fi
+            if [[ "$ACTION" == "d" ]]; then
+                rm -rf "$1"
+                cp -vr "$BASE_PATH/$1" "$1"
+            fi
+        fi
+        shift
+    done
+    exit 0
+fi
+
+if [[ "$ENV" == "staging" ]]; then
+    ENV_SUFFIX="staging"
+fi
 
 if [[ "$ENV" == "dev" ]]; then
     ENV_SUFFIX="dev"
@@ -8,14 +51,19 @@ fi
 
 if [[ "$ENV" == "prod" ]]; then
     ENV_SUFFIX=""
+
+    while true; do
+        read -p "Are you sure you want to update prod? (y/n) " yn
+        case $yn in
+            [Yy]* ) break;;
+            [Nn]* ) exit;;
+            * ) echo "Please answer yes or no.";;
+        esac
+    done
 fi
 
-if [[ "$COUNTRY" == "" ]]; then
-    COUNTRY="au"
-fi
-
-if [[ "$FOOL_PACKAGE_PATH" == "" ]]; then
-    echo "Missing FOOL_PACKAGE_PATH env var."
+if [[ "$ENV_SUFFIX" == "unspecified" ]]; then
+    echo "Missing ENV env var."
     exit 1
 fi
 
