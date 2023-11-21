@@ -67,6 +67,11 @@ if [[ "$ENV_SUFFIX" == "unspecified" ]]; then
     exit 1
 fi
 
+if [[ "$IS_COUNTRY" != "1" && "$FOOL_PACKAGE_PATH" == "" ]]; then
+    echo "Missing FOOL_PACKAGE_PATH env var."
+    exit 1
+fi
+
 SERVER_NAME="fool${COUNTRY}${ENV_SUFFIX}"
 
 SITE_URL="${SERVER_NAME}@${SERVER_NAME}.ssh.wpengine.net"

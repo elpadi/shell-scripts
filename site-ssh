@@ -28,18 +28,18 @@
 
 upload_file() {
 	echo "Uploading $1"
-	scp -r "$1" "$SITE_URL:$SITE_REMOTE_DIR/$1"
+	scp -O -r "$1" "$SITE_URL:$SITE_REMOTE_DIR/$1"
 }
 
 upload_dir() {
     dirPathNoSlash=$(echo "$1" | sed 's:/*$::')
 	echo "Uploading dir $1"
-    rsync -acvuzh --delete-after --port=$SSH_PORT "$dirPathNoSlash/" "$SITE_URL:$SITE_REMOTE_DIR/$dirPathNoSlash/"
+    rsync -acvuzh --delete-after --exclude 'vendor/' --exclude 'node_modules/' --port=$SSH_PORT "$dirPathNoSlash/" "$SITE_URL:$SITE_REMOTE_DIR/$dirPathNoSlash/"
 }
 
 download() {
 	echo "Downloading $1"
-	scp -r "$SITE_URL:$SITE_REMOTE_DIR/$1" "$1"
+	scp -O -r "$SITE_URL:$SITE_REMOTE_DIR/$1" "$1"
 }
 
 if [[ "$SSH_PORT" == "" ]]; then
