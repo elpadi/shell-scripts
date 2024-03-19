@@ -2,18 +2,8 @@
 
 ENV_SUFFIX="unspecified"
 
-if [[ "$FOOL_PACKAGE_PATH" == "" ]]; then
-    echo "Missing FOOL_PACKAGE_PATH env var."
-    exit 1
-fi
-
 if [[ "$COUNTRY" == "" ]]; then
     echo "Missing COUNTRY env var."
-    exit 1
-fi
-
-if [[ "$FOOL_PACKAGE_PATH" == "" ]]; then
-    echo "Missing FOOL_PACKAGE_PATH env var."
     exit 1
 fi
 
