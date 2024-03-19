@@ -1,0 +1,69 @@
+#!/bin/bash
+
+#set -o nounset
+set -o errexit
+
+trap 'echo "Aborting due to errexit on line $LINENO. Exit code: $?" >&2' ERR
+
+set -o errtrace
+set -o pipefail
+
+_print_help() {
+  cat <<HEREDOC
+Send a REST API request to Braze
+
+Requires the following env vars:
+  - BRAZE_API_TOKEN
+  - BRAZE_API_BASE_URL: for example, "https://rest.iad-01.braze.com"
+
+Usage:
+  braze-api endpoint apiPayload
+
+  Examples:
+  - braze-api users/track '{"attributes":[{"email":"user@example.com","external_id":111,"custom_attr":"hello world"}]}'
+
+Options:
+  -h --help  Show this screen.
+HEREDOC
+}
+
+_error() {
+    echo "$1" 1>&2
+    echo 'Use `braze-api -h` to for more information.' 1>&2
+    exit 1
+}
+
+_entry() {
+    if [[ "$BRAZE_API_TOKEN" == "" ]]; then
+        _error "Missing the BRAZE_API_TOKEN env var."
+    fi
+
+    if [[ "$BRAZE_API_BASE_URL" == "" ]]; then
+        _error "Missing the BRAZE_API_BASE_URL env var."
+    fi
+
+    if [[ "$1" == "" ]]; then
+        _error "Missing the API endpoint."
+    fi
+
+    if [[ "$2" == "" ]]; then
+        _error "Missing the JSON payload."
+    fi
+
+    endpoint="$1"
+    jsonPayload="$2"
+
+    echo "POSTing to $BRAZE_API_BASE_URL/$endpoint"
+    curl --location --request POST "$BRAZE_API_BASE_URL/$endpoint" --header 'Content-Type: application/json' --header "Authorization: Bearer $BRAZE_API_TOKEN" --data-raw "$jsonPayload"
+}
+
+_main() {
+  if [[ "${1:-}" =~ ^-h|--help$  ]]
+  then
+    _print_help
+  else
+    _entry "$@"
+  fi
+}
+
+_main "$@"
