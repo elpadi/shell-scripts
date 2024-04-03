@@ -1,0 +1,128 @@
+#!/bin/bash
+
+#set -o nounset
+set -o errexit
+
+trap 'echo "Aborting due to errexit on line $LINENO. Exit code: $?" >&2' ERR
+
+set -o errtrace
+set -o pipefail
+
+_print_help() {
+  cat <<HEREDOC
+Send a WP REST API request to a Foolish site
+
+Requires the following env vars:
+  - FOOL_REST_API_CREDENTIALS_CA_STAGING
+  - FOOL_REST_API_CREDENTIALS_CA_PROD
+  - FOOL_REST_API_CREDENTIALS_AU_STAGING
+  - FOOL_REST_API_CREDENTIALS_AU_PROD
+  - FOOL_REST_API_CREDENTIALS_UK_STAGING
+  - FOOL_REST_API_CREDENTIALS_UK_PROD
+
+Usage:
+  fool-rest-api {country} {env} {endpoint} [curl-argument...]
+
+  Examples:
+  - fool-rest-api CA staging fool/commerce/v1/entitlement-sync/users/email/user@example.com --request POST
+
+Options:
+  -h --help  Show this screen.
+HEREDOC
+}
+
+_error() {
+    echo "$1" 1>&2
+    echo 'Use `fool-rest-api -h` to for more information.' 1>&2
+    exit 1
+}
+
+_sanity_checks() {
+    envVars=("FOOL_REST_API_CREDENTIALS_CA_STAGING FOOL_REST_API_CREDENTIALS_CA_PROD FOOL_REST_API_CREDENTIALS_AU_STAGING FOOL_REST_API_CREDENTIALS_AU_PROD FOOL_REST_API_CREDENTIALS_UK_STAGING FOOL_REST_API_CREDENTIALS_UK_PROD")
+    for envVar in $envVars; do
+        if [[ "${!envVar}" == "" ]]; then
+            _error "Missing the $envVar env var."
+        fi
+    done
+
+    if [[ "$1" == "" ]]; then
+        _error "Missing the country argument."
+    fi
+
+    if [[ "$2" == "" ]]; then
+        _error "Missing the environment argument."
+    fi
+
+    if [[ "$3" == "" ]]; then
+        _error "Missing the endpoint argument."
+    fi
+
+}
+
+_entry() {
+    _sanity_checks "$@"
+
+    country="$1"
+    environment="$2"
+    endpoint="$3"
+
+    args=("$@")
+    curlArgs=("${args[@]:3}")
+
+    case "${country}_${environment}" in
+        CA_local)
+            hostname="fool-ca.lndo.site"
+            encodedAuth=$(echo "${FOOL_REST_API_CREDENTIALS_CA_STAGING}" | base64)
+            ;;
+        CA_staging)
+            hostname="staging.www.fool.ca"
+            encodedAuth=$(echo "${FOOL_REST_API_CREDENTIALS_CA_STAGING}" | base64)
+            ;;
+        CA_prod)
+            hostname="www.fool.ca"
+            encodedAuth=$(echo "${FOOL_REST_API_CREDENTIALS_CA_PROD}" | base64)
+            ;;
+        AU_local)
+            hostname="fool-au.lndo.site"
+            encodedAuth=$(echo "${FOOL_REST_API_CREDENTIALS_AU_STAGING}" | base64)
+            ;;
+        AU_staging)
+            hostname="staging.www.fool.com.au"
+            encodedAuth=$(echo "${FOOL_REST_API_CREDENTIALS_AU_STAGING}" | base64)
+            ;;
+        AU_prod)
+            hostname="www.fool.com.au"
+            encodedAuth=$(echo "${FOOL_REST_API_CREDENTIALS_AU_PROD}" | base64)
+            ;;
+        UK_local)
+            hostname="fool-uk.lndo.site"
+            encodedAuth=$(echo "${FOOL_REST_API_CREDENTIALS_UK_STAGING}" | base64)
+            ;;
+        UK_staging)
+            hostname="staging.www.fool.co.uk"
+            encodedAuth=$(echo "${FOOL_REST_API_CREDENTIALS_UK_STAGING}" | base64)
+            ;;
+        UK_prod)
+            hostname="www.fool.co.uk"
+            encodedAuth=$(echo "${FOOL_REST_API_CREDENTIALS_UK_PROD}" | base64)
+            ;;
+        *)
+            _error "Invalid country/environment arguments: ${country}_${environment}."
+            ;;
+    esac
+
+
+    echo "curl --header Authorization: Basic ${encodedAuth} ${curlArgs[@]} https://${hostname}/wp-json/${endpoint}"
+    curl --header "Authorization: Basic ${encodedAuth}" ${curlArgs[@]} "https://${hostname}/wp-json/${endpoint}"
+}
+
+_main() {
+  if [[ "${1:-}" =~ ^-h|--help$  ]]
+  then
+    _print_help
+  else
+    _entry "$@"
+  fi
+}
+
+_main "$@"
